@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Trending Topics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .loading, .error, .result {
+            margin-top: 20px;
+        }
+        .result {
+            text-align: left;
+        }
+        ol {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .category {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Twitter Trending Topics</h1>
+        <button id="fetchButton">Fetch Trending Topics</button>
+        <button id="refetchButton">Refetch Trending Topics</button>
+        <div class="loading" style="display: none;">Loading...</div>
+        <div class="error" style="display: none;"></div>
+        <div class="result" style="display: none;">
+            <h2>Results</h2>
+            <div id="trendsList"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('fetchButton').addEventListener('click', async () => {
+            const button = document.getElementById('fetchButton');
+            const loading = document.querySelector('.loading');
+            const error = document.querySelector('.error');
+            const result = document.querySelector('.result');
+            const trendsList = document.getElementById('trendsList');
+
+            button.disabled = true;
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            result.style.display = 'none';
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/get_trends', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    error.textContent = data.error;
+                    error.style.display = 'block';
+                } else {
+                    trendsList.innerHTML = '';
+
+                    data.forEach(trend => {
+                        const trendContainer = document.createElement('div');
+                        trendContainer.className = "results_list"
+                        trendContainer.innerHTML = `
+                            <p><strong>Unique ID:</strong> ${trend._id}</p>
+                            <p><strong>Date & Time:</strong> ${trend.date_time}</p>
+                            <p><strong>IP Address Used:</strong> ${JSON.parse(trend.ip_address).ip}</p>
+                            <p><strong>Trending Topics:</strong></p>
+                            <ol id="trendItems-${trend._id}"></ol>
+                        `;
+                        trendsList.appendChild(trendContainer);
+
+                        const trendItemsList = document.getElementById(`trendItems-${trend._id}`);
+                        trend.trends.forEach(trendItem => {
+                            const listItem = document.createElement('li');
+                            listItem.innerHTML = `
+                                <span class="category">Category:</span> ${trendItem.category} <br> 
+                                <strong>Title:</strong> ${trendItem.title || 'N/A'} <br> 
+                                <strong>Posts:</strong> ${trendItem.posts_count}
+                            `;
+                            trendItemsList.appendChild(listItem);
+                        });
+                    });
+
+                    result.style.display = 'block'; 
+                }
+            } catch (err) {
+                error.textContent = `Error: ${err.message}`;
+                error.style.display = 'block';
+            } finally {
+                button.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        document.getElementById('refetchButton').addEventListener('click', async () => {
+            const button = document.getElementById('refetchButton');
+            const loading = document.querySelector('.loading');
+            const error = document.querySelector('.error');
+            const result = document.querySelector('.result');
+            const trendsList = document.getElementById('trendsList');
+
+            button.disabled = true;
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            result.style.display = 'none';
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/trending', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    error.textContent = data.error;
+                    error.style.display = 'block';
+                } else {
+                    trendsList.innerHTML = '';
+
+                    const trendContainer = document.createElement('div');
+                    trendContainer.innerHTML = `
+                        <p><strong>Unique ID:</strong> ${data._id}</p>
+                        <p><strong>Date & Time:</strong> ${data.date_time}</p>
+                        <p><strong>IP Address Used:</strong> ${JSON.parse(data.ip_address).ip}</p>
+                        <p><strong>Trending Topics:</strong></p>
+                        <ol id="trendItems-${data._id}"></ol>
+                    `;
+                    trendsList.appendChild(trendContainer);
+
+                    const trendItemsList = document.getElementById(`trendItems-${data._id}`);
+                    data.trends.forEach(trendItem => {
+                        const listItem = document.createElement('li');
+                        listItem.innerHTML = `
+                            <span class="category">Category:</span> ${trendItem.category} <br> 
+                            <strong>Title:</strong> ${trendItem.title || 'N/A'} <br> 
+                            <strong>Posts:</strong> ${trendItem.posts_count}
+                        `;
+                        trendItemsList.appendChild(listItem);
+                    });
+
+                    result.style.display = 'block';
+                }
+            } catch (err) {
+                error.textContent = `Error: ${err.message}`;
+                error.style.display = 'block';
+            } finally {
+                button.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
